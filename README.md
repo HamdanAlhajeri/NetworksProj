@@ -35,11 +35,11 @@ python3 reciver.py --pipe-stdout --log-level WARNING | ffplay -i - -fflags nobuf
 ### 2) Sender
 Send a transport-stream file (recommended for live playback):
 ```powershell
-python sender.py --file "C:\path\to\video.ts" --content-type video --rate 50 --chunk-size 1316
+python sender.py --file video.ts --content-type video --rate 50 --chunk-size 1316
 ```
 or
 ```powershell
-python3 sender.py --file "C:\path\to\video.ts" --content-type video --rate 50 --chunk-size 1316
+python3 sender.py --file video.ts --content-type video --rate 50 --chunk-size 1316
 ```
 - Use `--iface <your_ip>` to select the outbound interface.
 - Drop `--loop` to send once; add `--loop` to repeat.
