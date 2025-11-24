@@ -169,8 +169,10 @@ class FileAssembler:
         expected_size = int(meta.get("file_size", 0) or 0)
         chunk_size = int(meta.get("chunk_size", 0) or 0)
         content_type = meta.get("content_type", "unknown")
+        if session_id in self.sessions:
+            # Already recording this session; ignore duplicate metadata (useful for late joiners).
+            return
         target_path = self._derive_path(session_id, file_name)
-        self._close_session(session_id)
         fh = target_path.open("wb")
         self.sessions[session_id] = FileSession(
             session_id=session_id,
@@ -195,12 +197,16 @@ class FileAssembler:
         chunk = payload[4:]
         session = self.sessions.get(session_id)
         if not session:
-            logging.debug(
-                "No active session for chunk session=%08x (%d bytes dropped)",
-                session_id,
-                len(chunk),
+            target_path = self._derive_path(session_id, f"session_{session_id:08x}.bin")
+            fh = target_path.open("wb")
+            session = FileSession(
+                session_id=session_id,
+                path=target_path,
+                fh=fh,
+                expected_size=0,
             )
-            return
+            self.sessions[session_id] = session
+            logging.info("Started placeholder session %08x -> %s", session_id, target_path)
         if not chunk:
             return
         if self.live_sink:

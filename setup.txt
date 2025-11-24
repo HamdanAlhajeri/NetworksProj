@@ -1,0 +1,36 @@
+Cisco 2900 multicast setup (example group 239.1.1.1 / port 5004)
+
+1) Enable multicast globally:
+   configure terminal
+   ip multicast-routing
+
+2) Enable PIM + IGMP on each L3 interface carrying multicast:
+   interface GigabitEthernet0/0        ! sender-side VLAN/segment
+    ip address 10.20.20.1 255.255.255.0
+    ip pim sparse-mode
+    ip igmp version 2
+   !
+   interface GigabitEthernet0/1        ! receiver-side VLAN/segment
+    ip address 10.30.30.1 255.255.255.0
+    ip pim sparse-mode
+    ip igmp version 2
+
+3) Configure a static RP (lab-simple choice; pick a stable router IP):
+   ip pim rp-address 10.20.20.1 239.0.0.0 255.0.0.0
+
+4) (Optional) Limit to your test group:
+   ip access-list standard ALLOW_MCAST
+    permit 239.1.1.1
+   ip pim accept-register list ALLOW_MCAST
+   ip igmp access-group ALLOW_MCAST
+
+5) Ensure ACLs/firewall policies permit IGMP (protocol 2) and UDP to your port/group on those interfaces.
+
+6) Verify:
+   show ip pim interface
+   show ip igmp groups
+   show ip mroute 239.1.1.1
+
+Usage reminder for hosts:
+- Sender: use --group 239.1.1.1 --port 5004 and set --iface to the sender NIC IP on 10.20.20.0/24; raise --ttl (e.g., 4) if multiple hops.
+- Receiver: same group/port, set --iface to the receiver NIC IP on 10.30.30.0/24.

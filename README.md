@@ -35,11 +35,11 @@ python3 reciver.py --pipe-stdout --log-level WARNING | ffplay -i - -fflags nobuf
 ### 2) Sender
 Send a transport-stream file (recommended for live playback):
 ```powershell
-python sender.py --file video.ts --content-type video --rate 50 --chunk-size 1316
+python sender.py --file video.ts --content-type video --chunk-size 1316 --rate 50 --meta-interval 5
 ```
 or
 ```powershell
-python3 sender.py --file video.ts --content-type video --rate 50 --chunk-size 1316
+python3 sender.py --file video.ts --content-type video --chunk-size 1316 --rate 50 --meta-interval 5
 ```
 - Use `--iface <your_ip>` to select the outbound interface.
 - Drop `--loop` to send once; add `--loop` to repeat.
@@ -57,7 +57,8 @@ ffmpeg -i "C:\path\to\video.mp4" -c copy -f mpegts "C:\path\to\video.ts"
 - `--pipe-stdout` (receiver) — stream chunks to stdout for live playback.
 - `--output-dir` (receiver) — where reconstructed files are written (default: `output/`).
 - `--idle-timeout` (receiver) — auto-stop after N seconds of inactivity (0 = never).
-
+- `--meta-interval` (sender) resends the stream metadata every N seconds so late-joining receivers can discover the current session  
+                    and start reconstructing immediately
 ## Troubleshooting
 - `ffplay` not found: install ffmpeg and reopen PowerShell; verify with `where ffplay`.
 - Corrupted video / “Invalid NAL unit”: use MPEG-TS input (`.ts`) and TS-aligned `--chunk-size 1316`; lower `--rate` if you suspect loss.

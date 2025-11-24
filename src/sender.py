@@ -100,6 +100,7 @@ def payload_source(args: argparse.Namespace, data_payload_type: int) -> Iterator
         if not path.exists():
             raise FileNotFoundError(path)
         chunk_size = max(1, min(args.chunk_size, MAX_PAYLOAD - 4))
+        meta_interval = max(args.meta_interval, 0.0)
 
         def file_chunks() -> Iterator[bytes]:
             with path.open("rb") as fh:
@@ -117,11 +118,16 @@ def payload_source(args: argparse.Namespace, data_payload_type: int) -> Iterator
                 "rate_hz": args.rate,
             }
             yield PAYLOAD_TYPES["control"], json.dumps(metadata).encode("utf-8")
+            last_meta = time.time()
             yielded = False
             for chunk in file_chunks():
                 yielded = True
                 payload = struct.pack("!I", session_id) + chunk
                 yield data_payload_type, payload
+                now = time.time()
+                if meta_interval and (now - last_meta) >= meta_interval:
+                    yield PAYLOAD_TYPES["control"], json.dumps(metadata).encode("utf-8")
+                    last_meta = now
             if not args.loop or not yielded:
                 break
     else:
@@ -177,6 +183,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Append an ISO timestamp to each payload.",
     )
     parser.add_argument(
+        "--meta-interval",
+        type=float,
+        default=5.0,
+        help="Seconds between repeating metadata packets when streaming a file (0 = only once).",
+    )
+    parser.add_argument(
         "--encoding", default="utf-8", help="Encoding for --message payload."
     )
     parser.add_argument(
@@ -195,6 +207,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    args.meta_interval = 5.0  # enforce periodic metadata resend for late joiners
     logging.basicConfig(
         level=getattr(logging, args.log_level),
         format="%(asctime)s %(levelname)s %(message)s",
