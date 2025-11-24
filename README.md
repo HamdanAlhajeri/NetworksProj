@@ -53,3 +53,12 @@ ffmpeg -i "C:\path\to\video.mp4" -c copy -f mpegts "C:\path\to\video.ts"
 - `ffplay` not found: install ffmpeg and reopen PowerShell; verify with `where ffplay`.
 - Corrupted video / “Invalid NAL unit”: use MPEG-TS input (`.ts`) and TS-aligned `--chunk-size 1316`; lower `--rate` if you suspect loss.
 - No packets received: ensure sender/receiver use the same group/port; check firewall rules and interface selection.
+
+
+## TODO:
+
+- Make it so that a user can join mid broadcast
+
+
+python reciver.py --pipe-stdout --log-level WARNING | ffplay -i - -fflags nobuffer -flags low_delay
+python sender.py --file video2.ts --content-type video --chunk-size 1300 --rate 100
