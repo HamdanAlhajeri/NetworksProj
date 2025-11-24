@@ -24,13 +24,22 @@ python .\src\reciver.py --pipe-stdout --log-level WARNING
 
 To pipe directly into ffplay (after ffmpeg install):
 ```powershell
-python .\src\reciver.py --pipe-stdout --log-level WARNING | ffplay -i - -fflags nobuffer -flags low_delay
+python reciver.py --pipe-stdout --log-level WARNING | ffplay -i - -fflags nobuffer -flags low_delay
+```
+or
+
+```powershell
+python3 reciver.py --pipe-stdout --log-level WARNING | ffplay -i - -fflags nobuffer -flags low_delay
 ```
 
 ### 2) Sender
 Send a transport-stream file (recommended for live playback):
 ```powershell
-python .\src\sender.py --file "C:\path\to\video.ts" --content-type video --rate 50 --chunk-size 1316
+python sender.py --file "C:\path\to\video.ts" --content-type video --rate 50 --chunk-size 1316
+```
+or
+```powershell
+python3 sender.py --file "C:\path\to\video.ts" --content-type video --rate 50 --chunk-size 1316
 ```
 - Use `--iface <your_ip>` to select the outbound interface.
 - Drop `--loop` to send once; add `--loop` to repeat.
