@@ -1,36 +1,83 @@
 Cisco 2900 multicast setup (example group 239.1.1.1 / port 5004)
+================================================================
 
-1) Enable multicast globally:
+Router CLI (console or SSH)
+---------------------------
+1. Enter privileged mode and start configuration:
+   enable
    configure terminal
+
+2. Turn on multicast routing globally:
    ip multicast-routing
 
-2) Enable PIM + IGMP on each L3 interface carrying multicast:
-   interface GigabitEthernet0/0        ! sender-side VLAN/segment
+3. Configure sender-side interface (Gig0/0 in this lab):
+   interface GigabitEthernet0/0
+    description Sender VLAN / 10.20.20.0-24
     ip address 10.20.20.1 255.255.255.0
     ip pim sparse-mode
     ip igmp version 2
-   !
-   interface GigabitEthernet0/1        ! receiver-side VLAN/segment
+   exit
+
+4. Configure receiver-side interface (Gig0/1 in this lab):
+   interface GigabitEthernet0/1
+    description Receiver VLAN / 10.30.30.0-24
     ip address 10.30.30.1 255.255.255.0
     ip pim sparse-mode
     ip igmp version 2
+   exit
 
-3) Configure a static RP (lab-simple choice; pick a stable router IP):
+5. Define a static Rendezvous Point (use a stable router IP):
    ip pim rp-address 10.20.20.1 239.0.0.0 255.0.0.0
 
-4) (Optional) Limit to your test group:
+6. (Optional) Lock the router to only accept the test group:
    ip access-list standard ALLOW_MCAST
     permit 239.1.1.1
+   exit
    ip pim accept-register list ALLOW_MCAST
    ip igmp access-group ALLOW_MCAST
 
-5) Ensure ACLs/firewall policies permit IGMP (protocol 2) and UDP to your port/group on those interfaces.
+7. Save the configuration:
+   end
+   write memory
 
-6) Verify:
+8. Verification commands (run in privileged mode):
    show ip pim interface
    show ip igmp groups
    show ip mroute 239.1.1.1
 
-Usage reminder for hosts:
-- Sender: use --group 239.1.1.1 --port 5004 and set --iface to the sender NIC IP on 10.20.20.0/24; raise --ttl (e.g., 4) if multiple hops.
-- Receiver: same group/port, set --iface to the receiver NIC IP on 10.30.30.0/24.
+Ubuntu sender PC (10.20.20.0/24)
+--------------------------------
+1. Open a terminal with sudo privileges.
+2. Configure the NIC (replace `enp0s3` with the actual interface name):
+   sudo ip addr flush dev enp0s3
+   sudo ip addr add 10.20.20.2/24 dev enp0s3
+   sudo ip link set enp0s3 up
+   sudo ip route add default via 10.20.20.1
+3. Allow multicast traffic with UFW (or skip if firewall disabled):
+   sudo ufw allow out proto udp to 239.1.1.1 port 5004
+4. Install VLC if needed:
+   sudo apt install -y vlc
+5. Run the sender:
+   python src/cli.py sender --group 239.1.1.1 --port 5004 --iface 10.20.20.2 --file <video.mp4> --content-type video
+
+Ubuntu receiver PC (10.30.30.0/24)
+----------------------------------
+1. Open a terminal with sudo privileges.
+2. Configure the NIC (replace `enp0s3` with the actual interface name):
+   sudo ip addr flush dev enp0s3
+   sudo ip addr add 10.30.30.2/24 dev enp0s3
+   sudo ip link set enp0s3 up
+   sudo ip route add default via 10.30.30.1
+3. Allow inbound UDP/5004 and IGMP using UFW:
+   sudo ufw allow in proto udp to any port 5004
+   sudo ufw allow in proto 2
+4. Install VLC if needed and ensure it’s on PATH:
+   sudo apt install -y vlc
+5. Run the receiver (adjust VLC path only if installed elsewhere):
+   python src/cli.py receiver --group 239.1.1.1 --port 5004 --iface 10.30.30.2 --player vlc
+
+General notes
+-------------
+- Raise `--ttl` (e.g., `--ttl 4`) on the sender if the stream must cross multiple routed hops.
+- If you use ffplay instead of VLC, replace `--player vlc` with `--player ffplay --ffplay <path>`.
+- Verify host membership with `show ip igmp groups` while the receiver is running to ensure it joins the multicast group.
