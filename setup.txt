@@ -81,3 +81,50 @@ General notes
 - Raise `--ttl` (e.g., `--ttl 4`) on the sender if the stream must cross multiple routed hops.
 - If you use ffplay instead of VLC, replace `--player vlc` with `--player ffplay --ffplay <path>`.
 - Verify host membership with `show ip igmp groups` while the receiver is running to ensure it joins the multicast group.
+
+Deploying the pre-made configs (router1.cfg / router2.cfg / switch.cfg)
+-----------------------------------------------------------------------
+Assumptions:
+- You have console access to each Cisco 2900 router and the access switch.
+- A TFTP server is running on your laptop at 10.20.20.10 with the .cfg files in its TFTP root. (Adjust the IP/server method if you use USB flash instead.)
+
+Steps for each router (repeat with router1.cfg then router2.cfg):
+1. Connect via console or SSH and enter privileged mode:
+   enable
+2. Verify reachability to the TFTP server:
+   ping 10.20.20.10
+3. Copy the desired config into startup-config (replace router1.cfg accordingly):
+   copy tftp: startup-config
+   Address or name of remote host []? 10.20.20.10
+   Source filename []? router1.cfg
+   Destination filename [startup-config]? <press Enter>
+4. Reload to apply:
+   reload
+   (Confirm save if prompted. The router will boot with the uploaded startup-config.)
+5. After reload, confirm the config loaded:
+   show running-config | include hostname
+   show ip interface brief
+
+Steps for the switch (switch.cfg):
+1. Connect via console/SSH, enter privileged mode:
+   enable
+2. Ping the TFTP server to ensure connectivity:
+   ping 10.20.20.10
+3. Copy the config to startup-config:
+   copy tftp: startup-config
+   Address or name of remote host []? 10.20.20.10
+   Source filename []? switch.cfg
+   Destination filename [startup-config]? <press Enter>
+4. Reload the switch so it boots with the new config:
+   reload
+5. Verify expected VLAN/interface settings:
+   show running-config
+   show vlan brief
+
+Alternate method (USB flash):
+1. Copy router1.cfg / router2.cfg / switch.cfg to a FAT32 USB drive.
+2. Insert the USB into the device (appears as `usbflash0:`).
+3. Use `copy usbflash0:router1.cfg startup-config`.
+4. Reload and verify as above.
+
+Always review the configs after loading to confirm site-specific IPs, interface names, and passwords match your lab. Save any post-load tweaks with `write memory`.
